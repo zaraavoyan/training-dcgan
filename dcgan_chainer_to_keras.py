@@ -18,6 +18,7 @@ from keras.layers.normalization import BatchNormalization
 import numpy as np
 from PIL import Image
 import tensorflowjs as tfjs
+import tensorflow as tf
 
 
 def _make_dense(input_dim, units, weight=None, kernel_arr_name=None, bias_arr_name=None):
@@ -256,7 +257,7 @@ flags.DEFINE_string('tfjs_model_path', '', '')
 
 def main(argv):
     del argv  # Unused.
-
+    tf.disable_eager_execution()
     weight = np.load(FLAGS.chainer_model_path)
 
     if FLAGS.arch == 'resnet128':
