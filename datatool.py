@@ -197,6 +197,7 @@ def dir_to_npz():
         return img.crop((left, top, right, bottom))
 
     def process_func(image_filename):
+        print(image_filename)
         img = Image.open(image_filename)
 
         img = center_crop(img)
