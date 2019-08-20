@@ -111,7 +111,7 @@ class ThreadPool(object):
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('dir_path', './images', 'Path to image dataset')
-flags.DEFINE_string('npz_path', 'dataset', 'Path to save .npz to')
+flags.DEFINE_string('npz_path', './dataset', 'Path to save .npz to')
 flags.DEFINE_integer('size', 64, 'Size for images')
 flags.DEFINE_integer('max_images', -1, 'Max number of images to process. -1 for no limitation.')
 flags.DEFINE_integer('num_threads', 40, 'Number of concurrent threads.')
