@@ -260,6 +260,13 @@ def main(argv):
     tf.disable_eager_execution()
     weight = np.load(FLAGS.chainer_model_path)
 
+    if FLAGS.keras_model_path == "":
+        FLAGS.keras_model_path = FLAGS.chainer_model_path.replace(".npz","_Keras.h5")
+    if FLAGS.tfjs_model_path == "":
+        FLAGS.tfjs_model_path = FLAGS.chainer_model_path.replace(".npz","_tfjs")
+
+    print('Tensorflow.js model path: ', FLAGS.tfjs_model_path)
+
     if FLAGS.arch == 'resnet128':
         get_generator = partial(get_resnet128_keras_generator, input_dim=128, ch=1024)
     elif FLAGS.arch == 'resnet256':
