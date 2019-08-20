@@ -110,60 +110,12 @@ class ThreadPool(object):
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('task', '', '')
-flags.DEFINE_string('dir_path', '', '')
-flags.DEFINE_string('npz_path', '', '')
-flags.DEFINE_string('multisize_h5_path', '', '')
+flags.DEFINE_string('dir_path', './images', 'Path to image dataset')
+flags.DEFINE_string('npz_path', 'dataset', 'Path to save .npz to')
 flags.DEFINE_integer('size', 64, 'Size for images')
 flags.DEFINE_integer('max_images', -1, 'Max number of images to process. -1 for no limitation.')
 flags.DEFINE_integer('num_threads', 40, 'Number of concurrent threads.')
 flags.DEFINE_integer('num_tasks', 600, 'Number of concurrent processing tasks.')
-
-
-def multisize_h5_to_npz():
-    output_dir = os.path.dirname(FLAGS.npz_path)
-    os.system('mkdir -p %s' % output_dir)
-
-    logging.info('Loading from %s for size %d.', FLAGS.npz_path, FLAGS.size)
-    h5_file = h5py.File(FLAGS.multisize_h5_path, 'r')
-    dset = h5_file['data%dx%d' % (FLAGS.size, FLAGS.size)]
-
-    arr = np.array(dset)
-    if FLAGS.max_images > -1:
-        arr = arr[:FLAGS.max_images]
-
-    logging.info('%d images laoded', len(arr))
-    logging.info('Saving numpy array to %s.', FLAGS.npz_path)
-    np.savez(FLAGS.npz_path, **{'size_%s' % (FLAGS.size): arr})
-
-
-def npz_to_dir():
-    output_dir = FLAGS.dir_path
-    os.system('mkdir -p %s' % output_dir)
-
-    blob = np.load(FLAGS.npz_path)
-    arr = blob['size_%s' % (FLAGS.size)]
-    if FLAGS.max_images > -1:
-        arr = arr[:FLAGS.max_images]
-    logging.info('%d images found', len(arr))
-
-    def process_func(inputs):
-        x, save_path = inputs
-        x = x.transpose(1, 2, 0)
-        x = np.round(x).astype(np.uint8)
-        img = Image.fromarray(x, mode='RGB')
-        img.save(save_path)
-        return None
-
-    imgs = []
-    print()
-    nb_images = len(arr)
-    data_iter = [(x, os.path.join(output_dir, '%08d.png' % id_)) for id_, x in enumerate(arr)]
-    for data_item in data_iter:
-        imgs.append(process_func(data_item))
-        print('%d / %d\r' % (len(imgs), nb_images), end=' ')
-    print()
-    logging.info('Processed %d images.' % nb_images)
 
 
 def dir_to_npz():
@@ -230,10 +182,7 @@ def dir_to_npz():
 
 def main(argv):
     del argv  # Unused.
-
-    logging.info('task is %s.' % FLAGS.task)
-    func = globals()[FLAGS.task]
-    func()
+    dir_to_npz()
 
 
 if __name__ == '__main__':
