@@ -1,157 +1,129 @@
-# GAN Showcase
+# DC-GAN Training
 
-https://alantian.net/ganshowcase/ is available as a web showcase where a deep GAN (Generative Adversarial Network) that generates (or dreams) images. This repo contains all code for it. Feedback are welcome!
+This codebase is a slightly modified version of [ganshowcase](https://github.com/alantian/ganshowcase). View the web version of the original [here](https://alantian.net/ganshowcase/) to see what's possible.
 
-Technically, the network architecture is similar to the residual network (ResNet) based generator
-([Gulrajani et al.](https://arxiv.org/abs/1704.00028)),
-as well as the classical DCGAN generator [Radford et al.](https://arxiv.org/abs/1511.06434)
-and the GAN training uses DRAGAN [Kodali et al.](https://arxiv.org/abs/1705.07215)
-style gradient penalty for better stability.
+## Requirements
 
-Training code is written in[Chainer](https://chainer.org/).
-The trained model is then manually converted to a [Keras](https://keras.io/") model,
-which in turn is [converted](https://js.tensorflow.org/tutorials/import-keras.html")
-to a web-runnable [TensorFlow.js](https://js.tensorflow.org/) model.
-
-The dataset used for training is CelebAHQ, an dataset for [Karras et al.](https://openreview.net/forum?id=Hk99zCeAb&noteId=ryOnMk6rM)
-which can be obtained by consulting its GitHub repo (https://github.com/tkarras/progressive_growing_of_gans).
+- A GPU is (ideally) required for training. If you have an NVIDIA GPU on your machine, ensure `cuda` and `cudnn` are installed correctly. Or you can use a service like [Spell](https://www.spell.run/) or [Google Colab](https://colab.research.google.com/) (instructions below) to access a remote GPU. Training is possible on a CPU, but will be *much* slower — taking weeks instead of hours.
+- Set up a Python environment, running Python 3.6 or higher
 
 
-## What is in This Repo
 
-This repo consists of code that
+## Usage
 
-1. Prepares data
-2. trains deep GAN.
-3. Converts the saved model to a web-runnable one.
-4. Presents the deep neural network, running completely in the browser.
+#### 1) Download this repository
 
-## How to use the code
-
-Step 1 through 3 are done offline and are covered by scripts in `./code/` directory and their discussing assumes that you are in `./code/` directory.
-Also note several bash variables in `UPPERCASE` should be adjusted
-accordingly.
-
-### Step 1 - Prepare data
-
-Dataset is stored as an [npz](https://docs.scipy.org/doc/numpy/reference/generated/numpy.savez.html) file, and can be converted from either a folder containing images or the CelebAHQ dataset.
-
-For using the folder of images, use
-
-```
-DIR_PATH=...
-DATA_FILE=...
-SIZE=... # can be 64, 128 or 256
-./datatool.py --task dir_to_npz \
-  --dir_path $DIR_PATH --npz_path $DATA_FILE --size $SIZE
+```bash
+git clone https://github.com/ml5js/training_DCGAN
+cd training_DCGAN
 ```
 
-For using the CelebAHQ dataset which can be obtained by consulting [its GitHub repo](https://github.com/tkarras/progressive_growing_of_gans):
 
+
+#### 2) Collect training data
+
+Collect a dataset of images and store them in the folder `images`. These could be images of the same type — eg. pictures of bedrooms or cityscapes — which would generate recognizable images of the same type, or you could use a more varied dataset that would probably generate more abstract output.
+
+The code will resize and (center) crop the images to prepare for training, as 64px or 128px or 256px squares.
+
+#### 3) Training
+
+There are 4 steps to training, the method of execution differs slightly based on where/how you are training:
+
+* Install dependencies
+
+* Convert image dataset to numpy arrays
+
+* Training (take a few hours)
+
+* Converting the resulting model to a web-compatible model
+
+
+
+**On your computer**
+
+* Install dependencies:
+
+  ```pip install -r requirements.txt```
+
+
+
+* Convert to numpy array: Specify the cropped image size you would like to use for training (larger will take longer) — 64, 128 or 256. The following code will generate a `dataset.npz` file.
+
+  ```
+  ./datatool.py --size IMAGE_SIZE
+  ```
+
+  (If the images are stored elsewhere, use `--dir_path` to specify the path. You can change the path of the generated `.npz` file with the  `--npz_path`  flag)
+
+
+
+* Train: Depending on the image size you used, specify the architecture to train with --
+
+  64px images:
+
+  ```
+  ./chainer_dcgan.py --arch dcgan64 --image_size 64
+  ```
+
+  128px images:
+
+  ```
+  ./chainer_dcgan.py --arch resnet128 --image_size 128
+  ```
+
+  256px images:
+
+  ```
+  ./chainer_dcgan.py --arch resnet256 --image_size 256
+  ```
+
+  (If you used a custom path for the `.npz` file, you can use the `--npz_path` flag to specify this. Output is saved to the `result` directory by default, this can be changed with the `--out` flag. See `chainer_dcgan.py` for more parameters)
+
+
+
+* Convert model: After the training is complete, examine the `result` directory — you should see a collection of files generated at different points of the training — `SmoothedGenerator_XXXXX.npz`.
+
+  You can see sample images from different iterations in the `result/preview_smoothed` directory — examine these to choose the iteration that produced the best results, and use that iteration number to  convert the model to a Tensorflow.js compatible format. Specify the architecture used.
+
+  ```
+  ./dcgan_chainer_to_keras.py --arch ARCHITECTURE_YOU_USED --chainer_model_path result/SmoothedGenerator_XXXXX.npz
+  ```
+
+  eg. using the `dcgan64` architecture with the model generated at the 50000th iteration:
+
+  ```
+  ./dcgan_chainer_to_keras.py --arch dcgan64 --chainer_model_path result/SmoothedGenerator_50000.npz
+  ```
+
+  This will generate a folder  `SmoothedGenerator_50000_tfjs`  which holds all the files you need to use the model with ml5 — take note of the `model.json` file.
+
+
+
+###
+
+#### Using the model with ml5
+
+See [this example](https://github.com/ml5js/ml5-examples/tree/release/p5js/DCGAN) for using DCGAN with ml5. To use your newly created model, make your own `manifest.json` file, that contains the path to your `model.json` file (inside the folder generated in the previous step).
+
+The contents of your `manifest.json` file should be : (modify as appropriate)
 
 ```
-CELEBAHQ_PATH=...  # should be an h5 file
-DATA_FILE=...
-SIZE=... # can be 64, 128 or 256
-
-../scripts/run_docker.sh \
-./datatool.py --task multisize_h5_to_npz \
-  --multisize_h5_path $CELEBAHQ_PATH  --npz_path $DATA_FILE --size $SIZE
+{
+    "description": "DESCRIPTION OF YOUR MODEL",
+    "model": "PATH/TO/YOUR/MODEL.JSON/FILE",
+    "modelSize": THE_IMAGE_SIZE_YOU_USED,
+    "modelLatentDim": 128
+}
 ```
 
-### Step 2 - Training the model
+For eg.
 
 ```
-
-# Training DCGAN64 model
-DATA_FILE_SIZE_64=...  # Data file of size 64
-DCGAN64_OUT=... # Output directory
-./chainer_dcgan.py \
-  --arch dcgan64 \
-  --image_size 64 \
-  --adam_alpha 0.0001 --adam_beta1 0.5 --adam_beta2 0.999 --lambda_gp 1.0 --learning_rate_anneal 0.9 --learning_rate_anneal_trigger 0 --learning_rate_anneal_interval 5000 --max_iter 100000 --snapshot_interval 5000 --evaluation_sample_interval 100 --display_interval 10 \
-  --npz_path $DATA_FILE_SIZE_64 \
-  --out $DCGAN64_OUT \
-  ;
-
-
-# Training ReSNet128 model
-DATA_FILE_SIZE_128=...  # Data file of size 64
-RESNET128_OUT=... # Output directory
-./chainer_dcgan.py \
-  --arch dcgan64 \
-  --image_size 64 \
-  --adam_alpha 0.0001 --adam_beta1 0.5 --adam_beta2 0.999 --lambda_gp 1.0 --learning_rate_anneal 0.9 --learning_rate_anneal_trigger 0 --learning_rate_anneal_interval 5000 --max_iter 100000 --snapshot_interval 5000 --evaluation_sample_interval 100 --display_interval 10 \
-  --npz_path $DATA_FILE_SIZE_128 \
-  --out $RESNET128_OUT \
-  ;
-
-
-# Training ReSNet256 model
-DATA_FILE_SIZE_256=...  # Data file of size 64
-RESNET256_OUT=... # Output directory
-./chainer_dcgan.py \
-  --arch dcgan64 \
-  --image_size 64 \
-  --adam_alpha 0.0001 --adam_beta1 0.5 --adam_beta2 0.999 --lambda_gp 1.0 --learning_rate_anneal 0.9 --learning_rate_anneal_trigger 0 --learning_rate_anneal_interval 5000 --max_iter 100000 --snapshot_interval 5000 --evaluation_sample_interval 100 --display_interval 10 \
-  --npz_path $DATA_FILE_SIZE_256 \
-  --out $RESNET256_OUT \
-  ;
-
+{
+    "description": "Simpsons dataset from Kaggle",
+    "model": "SmoothedGenerator_50000_tfjs/model.json",
+    "modelSize": 256,
+    "modelLatentDim": 128
+}
 ```
-
-### Step 3 - Convert from Chainer model to Keras/Tensorflow.js model
-
-Note that due to difficulty in training GANs,
-you may want to select a proper snapshot by specifying `ITER` below.
-This script also samples a few images serving as a sanity check and providing clue for picking the correct snapshot.
-
-```
-# DCGAN64
-
-ITER=50000
-./dcgan_chainer_to_keras.py \
-  --arch dcgan64 \
-  --chainer_model_path $DCGAN64_OUT/SmoothedGenerator_${ITER}.npz \
-  --keras_model_path $DCGAN64_OUT/Keras_SmoothedGenerator_${ITER}.h5 \
-  --tfjs_model_path $DCGAN64_OUT/tfjs_SmoothedGenerator_${ITER} \
-  ;
-
-# ResNet128
-
-ITER=20000
-./dcgan_chainer_to_keras.py \
-  --arch resnet128 \
-  --chainer_model_path $RESNET128_OUT/SmoothedGenerator_${ITER}.npz \
-  --keras_model_path $RESNET128_OUT/Keras_SmoothedGenerator_${ITER}.npz.h5 \
-  --tfjs_model_path $RESNET128_OUT/tfjs_SmoothedGenerator_${ITER} \
-  ;
-
-# ResNet256
-
-ITER=45000
-./dcgan_chainer_to_keras.py \
-  --arch resnet256 \
-  --chainer_model_path $RESNET256_OUT/SmoothedGenerator_${ITER}.npz \
-  --keras_model_path $RESNET256_OUT/Keras_SmoothedGenerator_${ITER}.npz.h5 \
-  --tfjs_model_path $RESNET256_OUT/tfjs_SmoothedGenerator_${ITER} \
-  ;
-
-```
-
-### Step 4 - Present the generative as a web page
-
-This step is covered by a web project under `./webcode/ganshowcase`.
-Now it is assumeed that you are in `./webcode/ganshowcase` directory.
-
-First you need to copy TensorFlow.js model (specified as argument to `--tfjs_model_path` in previous step) to a public accessible place, and
-modify `model_url` in `all_model_info` which is in the beginning of `index.js`.
-
-Then run the following:
-```
-yarn
-yarn build
-```
-
-Finally, copy `./dist/`, which is the built web page and js file,
-to whatever suitable for web hosting.
