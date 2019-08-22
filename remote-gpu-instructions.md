@@ -1,7 +1,10 @@
-## Remote GPU instructions
+# Remote GPU instructions
 
-#### Spell
-tbd
+### Spell
+todo
 
-#### NYU HPC
-tbd
+### Google Colab
+todo
+
+### NYU HPC
+todo
