@@ -14,7 +14,7 @@ This codebase is a slightly modified version of [ganshowcase](https://github.com
 #### 1) Download this repository
 
 ```bash
-git clone https://github.com/ml5js/training-dcgan
+git clone https://github.com/noisyneuron/training-dcgan
 cd training-dcgan
 ```
 

@@ -57,6 +57,7 @@
 
 
 
+
 ### COLAB
 
 * The steps for Google Colab differ mainly in how data is uploaded to Colab
@@ -92,6 +93,7 @@
   ```
 
 * The rest of the steps are the same as the main training instructions — just remember to prepend a `!`  to the commands
+
 
 
 
