@@ -139,5 +139,3 @@
   ```
   spell cp runs/RUN_NUMBER/result/SmoothedGenerator_XXXXX_tfjs ./my-tfjs-model
   ```
-
-  
