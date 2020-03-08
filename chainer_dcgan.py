@@ -70,7 +70,7 @@ def sample_generate(gen, dst, rows=10, cols=10, seed=0, subdir='preview'):
 
     @chainer.training.make_extension()
     def make_image(trainer):
-        np.random.seed(seed)
+        np.random.seed(10)
         n_images = rows * cols
         xp = gen.xp
         z = Variable(xp.asarray(gen.make_hidden(n_images)))
@@ -82,8 +82,8 @@ def sample_generate(gen, dst, rows=10, cols=10, seed=0, subdir='preview'):
         x = np.asarray(np.clip(x * 127.5 + 127.5, 0.0, 255.0), dtype=np.uint8)
         _, _, h, w = x.shape
         x = x.reshape((rows, cols, 3, h, w))
-        x = x.transpose(0, 3, 1, 4, 2)
-        x = x.reshape((rows * h, cols * w, 3))
+        x = x.transpose(0, 2, 1, 3, 2)
+        x = x.reshape((rows * h, cols * w, 1))
 
         preview_dir = '{}/{}'.format(dst, subdir)
         preview_path = preview_dir + '/image{:0>8}.png'.format(trainer.updater.iteration)
@@ -165,6 +165,7 @@ class DCGANDiscriminator64(chainer.Chain):
             self.c2_0 = L.Convolution2D(ch // 2, ch // 2, 3, 1, 1, initialW=w)
             self.c2_1 = L.Convolution2D(ch // 2, ch // 1, 4, 2, 1, initialW=w)
             self.c3_0 = L.Convolution2D(ch // 1, ch // 1, 3, 1, 1, initialW=w)
+            self.c4_0 = L.Convolution2D(ch // 1, ch // 1, 3, 2, 1, initialW=w)
             self.l4 = L.Linear(bottom_width * bottom_width * ch, output_dim, initialW=w)
             self.bn0_1 = L.BatchNormalization(ch // 4, use_gamma=False)
             self.bn1_0 = L.BatchNormalization(ch // 4, use_gamma=False)
@@ -172,6 +173,7 @@ class DCGANDiscriminator64(chainer.Chain):
             self.bn2_0 = L.BatchNormalization(ch // 2, use_gamma=False)
             self.bn2_1 = L.BatchNormalization(ch // 1, use_gamma=False)
             self.bn3_0 = L.BatchNormalization(ch // 1, use_gamma=False)
+            self.bn4_0 = L.BatchNormalization(ch // 3, use_gamma=False)
 
     def __call__(self, x):
         h = F.leaky_relu(self.c0_0(x))
@@ -193,8 +195,10 @@ class ResNetResBlockUp(chainer.Chain):
             self.c0 = L.Convolution2D(in_ch, out_ch, 3, 1, 1, initialW=w)
             self.c1 = L.Convolution2D(out_ch, out_ch, 3, 1, 1, initialW=w)
             self.cs = L.Convolution2D(in_ch, out_ch, 3, 1, 1, initialW=w)
+            self.c4 = L.Convolution2D(in_ch, out_ch, 3, 2, 1, initialW=w)
             self.bn0 = L.BatchNormalization(in_ch)
             self.bn1 = L.BatchNormalization(out_ch)
+            self.bn4 = L.BatchNormalization(out_ch)
 
     def __call__(self, x):
         h = self.c0(F.unpooling_2d(F.relu(self.bn0(x)), 2, 2, 0, cover_all=False))
@@ -212,8 +216,8 @@ class ResNetResBlockDown(chainer.Chain):
 
         with self.init_scope():
             w = chainer.initializers.Normal(wscale)
-            self.c0 = L.Convolution2D(in_ch, out_ch, 3, 1, 1, initialW=w)
-            self.c1 = L.Convolution2D(out_ch, out_ch, 4, 2, 1, initialW=w)
+            self.c0 = L.Convolution2D(in_ch, out_ch, 3, 2, 1, initialW=w)
+            self.c1 = L.Convolution2D(out_ch, out_ch, 4, 3, 1, initialW=w)
             self.cs = L.Convolution2D(in_ch, out_ch, 4, 2, 1, initialW=w)
             self.bn0 = L.BatchNormalization(in_ch)
             self.bn1 = L.BatchNormalization(out_ch)
